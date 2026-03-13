@@ -1,11 +1,13 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { useGameStore, Team, TEAM_COLORS } from "@/lib/store";
 
 export default function SetupScreen() {
   const { teams, setTeams, startGame, maxRounds, toggleDarkMode, isDarkMode } = useGameStore();
   const [localTeams, setLocalTeams] = useState<Team[]>(teams);
+  const router = useRouter();
   const [rounds, setRounds] = useState(maxRounds);
 
   const updateTeamName = (id: string, name: string) => {
@@ -112,6 +114,15 @@ export default function SetupScreen() {
           className="w-full py-4 bg-wavelength-accent text-black font-black text-lg tracking-wide rounded-xl hover:opacity-90 active:scale-[0.98] transition-all"
         >
           START GAME
+        </button>
+
+        {/* Play Online button */}
+        <button
+          onClick={() => router.push("/online")}
+          className="w-full py-4 border-2 font-black text-lg tracking-wide rounded-xl hover:opacity-80 active:scale-[0.98] transition-all"
+          style={{ borderColor: "var(--border)", color: "var(--fg-muted)" }}
+        >
+          PLAY ONLINE
         </button>
       </div>
 
