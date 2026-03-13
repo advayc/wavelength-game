@@ -1,5 +1,5 @@
 import { create } from "zustand";
-import { ConceptPair, getRandomConcept, getRandomTargetAngle } from "./concepts";
+import { ConceptPair, getRandomConcept, getRandomTargetAngle, recordConceptSeen } from "./concepts";
 
 export type Phase = "setup" | "psychic" | "guessing" | "revealed" | "game-over";
 
@@ -79,6 +79,7 @@ export const useGameStore = create<GameState>((set, get) => ({
     if (!result) return;
     const newUsed = new Set(state.usedConceptIndices);
     newUsed.add(result.index);
+    recordConceptSeen(result.index);
     set({
       phase: "psychic",
       round: 1,
@@ -125,7 +126,10 @@ export const useGameStore = create<GameState>((set, get) => ({
 
     const result = getRandomConcept(state.usedConceptIndices);
     const newUsed = new Set(state.usedConceptIndices);
-    if (result) newUsed.add(result.index);
+    if (result) {
+      newUsed.add(result.index);
+      recordConceptSeen(result.index);
+    }
 
     set({
       phase: "psychic",

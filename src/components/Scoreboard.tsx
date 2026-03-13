@@ -15,13 +15,15 @@ export default function Scoreboard() {
           {Array.from({ length: maxRounds }, (_, i) => (
             <div
               key={i}
-              className={`h-1 w-4 rounded-full transition-all ${
-                i < round - 1
-                  ? "bg-wavelength-accent opacity-80"
+              className="h-1 w-4 rounded-full transition-all"
+              style={{
+                background: i < round - 1
+                  ? "var(--accent)"
                   : i === round - 1
-                  ? "bg-wavelength-accent"
-                  : "bg-white/10"
-              }`}
+                  ? "var(--accent)"
+                  : "var(--border)",
+                opacity: i < round - 1 ? 0.8 : 1,
+              }}
             />
           ))}
         </div>
@@ -31,12 +33,11 @@ export default function Scoreboard() {
         {teams.map((team, i) => (
           <div
             key={team.id}
-            className={`flex-1 rounded-xl px-4 py-3 transition-all ${
-              i === currentTeamIndex
-                ? "bg-white/10 border border-white/20"
-                : "border border-white/5"
-            }`}
-            style={{ backgroundColor: i === currentTeamIndex ? undefined : "rgba(255,255,255,0.03)" }}
+            className="flex-1 rounded-xl px-4 py-3 transition-all border"
+            style={{
+              background: i === currentTeamIndex ? "var(--surface-hover)" : "var(--surface)",
+              borderColor: i === currentTeamIndex ? "var(--border-focus)" : "var(--border)",
+            }}
           >
             <div className="flex items-center gap-2 mb-1">
               <div

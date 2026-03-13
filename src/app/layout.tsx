@@ -1,11 +1,10 @@
 import type { Metadata, Viewport } from "next";
-import { Space_Grotesk, Space_Mono } from "next/font/google";
+import { Inter, Space_Mono } from "next/font/google";
 import "./globals.css";
 
-const spaceGrotesk = Space_Grotesk({
-  variable: "--font-space-grotesk",
+const inter = Inter({
+  variable: "--font-inter",
   subsets: ["latin"],
-  weight: ["300", "400", "500", "600", "700"],
   display: "swap",
 });
 
@@ -20,7 +19,8 @@ export const metadata: Metadata = {
   title: "Wavelength — Party Game",
   description: "The mind-reading party game. Give clues. Read minds. Get on the same wavelength.",
   icons: {
-    icon: "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><text y='28' font-size='28'>🎯</text></svg>",
+    icon: [{ url: "/logo.svg", type: "image/svg+xml" }],
+    apple: [{ url: "/logo.svg" }],
   },
 };
 
@@ -40,8 +40,8 @@ export default function RootLayout({
   return (
     <html lang="en" className="dark">
       <body
-        className={`${spaceGrotesk.variable} ${spaceMono.variable} antialiased min-h-screen`}
-        style={{ background: "var(--background)", color: "var(--foreground)" }}
+        className={`${inter.variable} ${spaceMono.variable} antialiased min-h-screen`}
+        style={{ background: "var(--bg)", color: "var(--fg)" }}
       >
         {children}
       </body>

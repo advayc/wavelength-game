@@ -30,16 +30,17 @@ export default function GameBoardScreen() {
         
         {/* Concept Card */}
         {currentConcept && (
-          <div className="w-full max-w-sm rounded-2xl border bg-white/5 border-white/10 p-6 flex items-stretch shadow-lg">
+          <div className="w-full max-w-sm rounded-2xl border p-6 flex items-stretch shadow-lg"
+            style={{ background: "var(--surface)", borderColor: "var(--border)" }}>
             <div className="flex-1 flex flex-col items-center text-center">
               <span className="text-[10px] font-mono uppercase tracking-widest opacity-40 mb-2">Left</span>
               <span className="text-xl font-bold leading-tight">{currentConcept.left}</span>
             </div>
             
             <div className="flex flex-col items-center justify-center px-4">
-              <div className="w-px h-8 bg-white/20" />
-              <div className="text-white/40 text-lg my-1 font-mono">↔</div>
-              <div className="w-px h-8 bg-white/20" />
+              <div className="w-px h-8" style={{ background: "var(--divider)" }} />
+              <div className="text-lg my-1 font-mono" style={{ color: "var(--fg-muted)" }}>↔</div>
+              <div className="w-px h-8" style={{ background: "var(--divider)" }} />
             </div>
 
             <div className="flex-1 flex flex-col items-center text-center">
@@ -66,7 +67,8 @@ export default function GameBoardScreen() {
             
             {phase === "psychic" && (
               <div className="flex flex-col gap-4 animate-in fade-in slide-in-from-bottom-2 duration-500">
-                <div className="bg-white/5 border border-white/10 rounded-xl p-4 text-center">
+                <div className="rounded-xl p-4 text-center border"
+                  style={{ background: "var(--surface)", borderColor: "var(--border)" }}>
                   <p className="text-xs font-mono uppercase tracking-widest opacity-50 mb-1">Psychic Phase</p>
                   <p className="text-sm opacity-80 leading-relaxed">
                     Look at the target position. Think of a clue, say it out loud, then hide the target from your team!
@@ -84,7 +86,8 @@ export default function GameBoardScreen() {
 
             {phase === "guessing" && (
               <div className="flex flex-col gap-4 animate-in fade-in slide-in-from-bottom-2 duration-500">
-                <div className="bg-white/5 border border-white/10 rounded-xl p-4 text-center">
+                <div className="rounded-xl p-4 text-center border"
+                  style={{ background: "var(--surface)", borderColor: "var(--border)" }}>
                   <p className="text-xs font-mono uppercase tracking-widest opacity-50 mb-1">Guessing Phase</p>
                   <p className="text-sm opacity-80 leading-relaxed">
                     Team, drag the needle to where you think the target is hidden!
@@ -102,7 +105,8 @@ export default function GameBoardScreen() {
 
             {phase === "revealed" && (
               <div className="flex flex-col items-center gap-4 animate-in fade-in zoom-in duration-500">
-                <div className="text-center bg-white/5 w-full rounded-xl border border-white/10 py-6">
+                <div className="text-center w-full rounded-xl border py-6"
+                  style={{ background: "var(--surface)", borderColor: "var(--border)" }}>
                   <div className="text-6xl font-black tracking-tighter" style={{ color: currentTeam.color }}>
                     +{lastScore}
                   </div>
@@ -112,7 +116,8 @@ export default function GameBoardScreen() {
                 </div>
                 <button
                   onClick={nextTurn}
-                  className="w-full py-4 rounded-xl text-lg font-black text-white bg-white/10 hover:bg-white/20 active:scale-[0.98] transition-all mt-2 border border-white/20"
+                  className="w-full py-4 rounded-xl text-lg font-black active:scale-[0.98] transition-all mt-2 border"
+                  style={{ background: "var(--surface-hover)", borderColor: "var(--border)", color: "var(--fg)" }}
                 >
                   NEXT ROUND →
                 </button>

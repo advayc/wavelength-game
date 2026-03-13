@@ -38,7 +38,7 @@ export default function SetupScreen() {
       {/* Header */}
       <div className="text-center mb-10">
         <p className="text-xs tracking-[0.3em] uppercase mb-3 opacity-50 font-mono">Party Game</p>
-        <h1 className="text-6xl md:text-8xl font-black tracking-tighter leading-none">
+        <h1 className="text-6xl md:text-8xl font-black tracking-[-0.015em] leading-none select-none">
           WAVE<span className="text-wavelength-accent">LENGTH</span>
         </h1>
         <p className="mt-4 text-sm opacity-60 max-w-sm mx-auto leading-relaxed">
@@ -62,13 +62,15 @@ export default function SetupScreen() {
                 value={team.name}
                 onChange={(e) => updateTeamName(team.id, e.target.value)}
                 maxLength={20}
-                className="flex-1 bg-white/5 border border-white/10 rounded-lg px-4 py-3 text-sm outline-none focus:border-white/30 transition-colors placeholder-white/20"
+                className="flex-1 rounded-lg px-4 py-3 text-sm outline-none transition-colors border"
+                style={{ background: "var(--input-bg)", borderColor: "var(--border)", color: "var(--fg)" }}
                 placeholder="Team name"
               />
               {localTeams.length > 2 && (
                 <button
                   onClick={() => removeTeam(team.id)}
-                  className="w-8 h-8 flex items-center justify-center text-white/30 hover:text-white/70 transition-colors text-lg leading-none"
+                  className="w-8 h-8 flex items-center justify-center transition-colors text-lg leading-none"
+                  style={{ color: "var(--fg-faint)" }}
                 >
                   ×
                 </button>
@@ -78,7 +80,8 @@ export default function SetupScreen() {
           {localTeams.length < 6 && (
             <button
               onClick={addTeam}
-              className="w-full py-3 border border-dashed border-white/20 rounded-lg text-sm text-white/40 hover:text-white/70 hover:border-white/40 transition-all"
+              className="w-full py-3 border border-dashed rounded-lg text-sm transition-all"
+              style={{ borderColor: "var(--border)", color: "var(--fg-muted)" }}
             >
               + Add Team
             </button>
@@ -94,9 +97,7 @@ export default function SetupScreen() {
                 key={r}
                 onClick={() => setRounds(r)}
                 className={`flex-1 py-3 rounded-lg text-sm font-semibold transition-all ${
-                  rounds === r
-                    ? "bg-wavelength-accent text-black"
-                    : "bg-white/5 text-white/50 hover:bg-white/10"
+                  rounds === r ? "rounds-btn-active" : "rounds-btn-inactive"
                 }`}
               >
                 {r}

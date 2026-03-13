@@ -157,8 +157,7 @@ export default function DialWheel({
             <path d={wedgePath(cx, cy, targetRadius, -16, 16)} fill="#f97316" />
             {/* Bullseye (4pt) - Blue */}
             <path d={wedgePath(cx, cy, targetRadius, -6, 6)} fill="#3b82f6" />
-            {/* Thin precise center line for visual flair */}
-            <path d={wedgePath(cx, cy, targetRadius, -0.5, 0.5)} fill="#1a1a2e" opacity="0.3" />
+
           </g>
         </g>
 

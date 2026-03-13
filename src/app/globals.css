@@ -1,73 +1,87 @@
 @import "tailwindcss";
 
+/* ── Dark mode (default) ── */
 :root {
-  --background: #0a0b0f;
-  --foreground: #f0ede8;
-  --accent: #2EC4B6;
-  --accent-warm: #FF9F1C;
+  --bg:           #0a0b0f;
+  --fg:           #f0ede8;
+  --fg-muted:     rgba(240, 237, 232, 0.5);
+  --fg-faint:     rgba(240, 237, 232, 0.25);
+  --surface:      rgba(255, 255, 255, 0.06);
+  --surface-hover:rgba(255, 255, 255, 0.10);
+  --border:       rgba(255, 255, 255, 0.10);
+  --border-focus: rgba(255, 255, 255, 0.35);
+  --divider:      rgba(255, 255, 255, 0.15);
+  --input-bg:     rgba(255, 255, 255, 0.06);
+  --nav-bg:       rgba(10, 11, 15, 0.88);
+  --accent:       #2EC4B6;
+}
+
+/* ── Light mode ── */
+.light {
+  --bg:           #f2ede4;
+  --fg:           #1a1a2e;
+  --fg-muted:     rgba(26, 26, 46, 0.55);
+  --fg-faint:     rgba(26, 26, 46, 0.30);
+  --surface:      rgba(0, 0, 0, 0.05);
+  --surface-hover:rgba(0, 0, 0, 0.09);
+  --border:       rgba(0, 0, 0, 0.12);
+  --border-focus: rgba(0, 0, 0, 0.35);
+  --divider:      rgba(0, 0, 0, 0.15);
+  --input-bg:     rgba(255, 255, 255, 0.70);
+  --nav-bg:       rgba(242, 237, 228, 0.92);
+  --accent:       #2EC4B6;
 }
 
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
+  --color-bg:             var(--bg);
+  --color-fg:             var(--fg);
+  --color-surface:        var(--surface);
+  --color-border:         var(--border);
   --color-wavelength-accent: var(--accent);
-  --color-wavelength-warm: var(--accent-warm);
-  --font-sans: var(--font-space-grotesk);
+  --font-sans: var(--font-inter);
   --font-mono: var(--font-space-mono);
 }
 
-body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: var(--font-sans), system-ui, sans-serif;
+html, body {
+  background: var(--bg);
+  color: var(--fg);
+  font-family: var(--font-inter), "Inter", system-ui, sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
 
-/* Light mode */
-.light {
-  --background: #f5f0e8;
-  --foreground: #1a1a2e;
-}
-
-.light body {
-  background: var(--background);
-  color: var(--foreground);
-}
-
-/* Smooth transitions */
+/* ── Global transition for theme swap ── */
 *, *::before, *::after {
-  transition-property: background-color, border-color, color, opacity;
-  transition-duration: 150ms;
+  transition-property: background-color, border-color, color, opacity, box-shadow;
+  transition-duration: 180ms;
   transition-timing-function: ease;
 }
 
-/* Prevent transition on transforms/layout */
-.no-transition {
-  transition: none !important;
-}
+/* ── Scrollbar ── */
+::-webkit-scrollbar { width: 4px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
 
-/* Custom scrollbar */
-::-webkit-scrollbar {
-  width: 4px;
-}
-::-webkit-scrollbar-track {
-  background: transparent;
-}
-::-webkit-scrollbar-thumb {
-  background: rgba(255,255,255,0.15);
-  border-radius: 2px;
-}
-
-/* Input styling */
+/* ── Inputs ── */
 input[type="text"] {
-  color: var(--foreground);
+  background: var(--input-bg);
+  color: var(--fg);
+  border-color: var(--border);
 }
+input[type="text"]::placeholder { color: var(--fg-faint); }
+input[type="text"]:focus { border-color: var(--border-focus); }
 
-input[type="text"]::placeholder {
-  color: rgba(240, 237, 232, 0.25);
+/* ── Rounds buttons ── */
+.rounds-btn-active {
+  background: var(--accent);
+  color: #000;
 }
-
-.light input[type="text"]::placeholder {
-  color: rgba(26, 26, 46, 0.25);
+.rounds-btn-inactive {
+  background: var(--surface);
+  color: var(--fg-muted);
+  border: 1px solid var(--border);
+}
+.rounds-btn-inactive:hover {
+  background: var(--surface-hover);
+  color: var(--fg);
 }

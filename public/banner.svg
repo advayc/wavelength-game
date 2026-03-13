@@ -1,0 +1,26 @@
+<svg width="1200" height="630" viewBox="0 0 1200 630" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- Background -->
+  <rect width="1200" height="630" fill="#0a0b0f"/>
+  
+  <!-- Content Container -->
+  <g transform="translate(120, 165)">
+    <!-- Logo Icon -->
+    <g>
+      <rect width="260" height="260" rx="52" fill="#2EC4B6"/>
+      <path d="M50 130C50 130 90 70 130 70C170 70 170 190 210 190C250 190 250 70 290 70C330 70 370 130 370 130" transform="translate(-15, 20) scale(0.65)" stroke="black" stroke-width="40" stroke-linecap="round" stroke-linejoin="round"/>
+    </g>
+    
+    <!-- Text -->
+    <g transform="translate(300, 80)">
+      <text x="0" y="0" font-family="system-ui, -apple-system, sans-serif" font-weight="900" font-size="96" fill="white" letter-spacing="-0.04em">
+        WAVE<tspan fill="#2EC4B6">LENGTH</tspan>
+      </text>
+      <text x="5" y="60" font-family="monospace" font-weight="500" font-size="28" fill="white" opacity="0.6" letter-spacing="0.1em">
+        GIVE CLUES. READ MINDS.
+      </text>
+      <text x="5" y="110" font-family="system-ui, -apple-system, sans-serif" font-weight="400" font-size="22" fill="white" opacity="0.4">
+        The social party game for everyone.
+      </text>
+    </g>
+  </g>
+</svg>

@@ -9,8 +9,8 @@ export default function TopNav() {
   if (phase === "setup") return null;
 
   return (
-    <div className="fixed top-0 left-0 right-0 z-50 flex items-center justify-between px-4 py-3 border-b border-white/5 backdrop-blur-sm"
-      style={{ background: "rgba(10,11,15,0.85)" }}
+    <div className="fixed top-0 left-0 right-0 z-50 flex items-center justify-between px-4 py-3 border-b backdrop-blur-sm"
+      style={{ background: "var(--nav-bg)", borderColor: "var(--border)" }}
     >
       {/* Logo */}
       <button
