@@ -1,7 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getSql, getRoomWithPlayers } from "@/lib/db";
 import { pusher, roomChannel, EVENTS } from "@/lib/pusher-server";
-import { TEAM_COLORS } from "@/lib/store";
+
+// Assign a unique color to a new player from a fixed palette, avoiding duplicates
+const PLAYER_COLORS = [
+  "#E63946", "#2EC4B6", "#FF9F1C", "#9B5DE5",
+  "#06D6A0", "#F72585", "#4361EE", "#F4A261",
+  "#E76F51", "#2A9D8F",
+];
 
 // POST /api/room/join — join an existing room
 export async function POST(req: NextRequest) {
@@ -26,17 +32,13 @@ export async function POST(req: NextRequest) {
     const existingPlayers = await sql`
       SELECT * FROM players WHERE room_id = ${upperRoomId}
     `;
-    if (existingPlayers.length >= 6) {
-      return NextResponse.json({ error: "Room is full (max 6 players)." }, { status: 409 });
-    }
 
     const playerId = crypto.randomUUID();
-    const teamIndex = existingPlayers.length;
-    const color = TEAM_COLORS[teamIndex % TEAM_COLORS.length];
+    const color = PLAYER_COLORS[existingPlayers.length % PLAYER_COLORS.length];
 
     await sql`
-      INSERT INTO players (id, room_id, name, color, team_index)
-      VALUES (${playerId}, ${upperRoomId}, ${playerName.trim()}, ${color}, ${teamIndex})
+      INSERT INTO players (id, room_id, name, color, team_id, psychic_order)
+      VALUES (${playerId}, ${upperRoomId}, ${playerName.trim()}, ${color}, NULL, 0)
     `;
 
     const room = await getRoomWithPlayers(upperRoomId);

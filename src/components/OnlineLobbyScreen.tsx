@@ -3,10 +3,161 @@
 import { useState, useEffect } from "react";
 import { useSearchParams } from "next/navigation";
 import { useOnlineStore } from "@/lib/online-store";
+import type { OnlineTeam, OnlinePlayer } from "@/lib/db";
 
 interface OnlineLobbyScreenProps {
   onBack: () => void;
 }
+
+// ─── Team Column ─────────────────────────────────────────────────────────────
+
+function TeamColumn({
+  team,
+  players,
+  isHost,
+  onAssign,
+  onDelete,
+  onRename,
+}: {
+  team: OnlineTeam;
+  players: OnlinePlayer[];
+  isHost: boolean;
+  onAssign: (playerId: string, teamId: string) => void;
+  onDelete: (teamId: string) => void;
+  onRename: (teamId: string, name: string) => void;
+}) {
+  const [editing, setEditing] = useState(false);
+  const [draftName, setDraftName] = useState(team.name);
+  const [dragOver, setDragOver] = useState(false);
+
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    setDragOver(false);
+    const playerId = e.dataTransfer.getData("playerId");
+    if (playerId) onAssign(playerId, team.id);
+  };
+
+  const commitRename = () => {
+    if (draftName.trim() && draftName.trim() !== team.name) {
+      onRename(team.id, draftName.trim());
+    }
+    setEditing(false);
+  };
+
+  return (
+    <div
+      className="flex flex-col rounded-2xl overflow-hidden min-w-[140px] flex-shrink-0"
+      style={{
+        background: dragOver ? `${team.color}18` : "var(--surface)",
+        border: `1px solid ${dragOver ? team.color : "var(--border)"}`,
+        transition: "border-color 0.15s, background 0.15s",
+      }}
+      onDragOver={isHost ? (e) => { e.preventDefault(); setDragOver(true); } : undefined}
+      onDragLeave={isHost ? () => setDragOver(false) : undefined}
+      onDrop={isHost ? handleDrop : undefined}
+    >
+      {/* Team header */}
+      <div
+        className="flex items-center gap-2 px-3 py-2.5"
+        style={{ borderBottom: "1px solid var(--border)", background: `${team.color}15` }}
+      >
+        <span className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ backgroundColor: team.color }} />
+        {editing && isHost ? (
+          <input
+            autoFocus
+            value={draftName}
+            onChange={(e) => setDraftName(e.target.value.slice(0, 20))}
+            onBlur={commitRename}
+            onKeyDown={(e) => e.key === "Enter" && commitRename()}
+            className="flex-1 bg-transparent outline-none text-xs font-bold min-w-0"
+            style={{ color: team.color }}
+          />
+        ) : (
+          <span
+            className="flex-1 text-xs font-bold truncate cursor-pointer"
+            style={{ color: team.color }}
+            onClick={isHost ? () => { setDraftName(team.name); setEditing(true); } : undefined}
+          >
+            {team.name}
+          </span>
+        )}
+        {isHost && !editing && (
+          <button
+            onClick={() => onDelete(team.id)}
+            className="text-[10px] opacity-40 hover:opacity-80 flex-shrink-0 leading-none"
+            style={{ color: "var(--fg)" }}
+            title="Remove team"
+          >
+            ✕
+          </button>
+        )}
+      </div>
+
+      {/* Players in this team */}
+      <div className="flex-1 p-2 space-y-1.5 min-h-[60px]">
+        {players.map((player) => (
+          <PlayerChip
+            key={player.id}
+            player={player}
+            draggable={isHost}
+            onUnassign={isHost ? () => onAssign(player.id, "") : undefined}
+          />
+        ))}
+        {players.length === 0 && (
+          <p className="text-[10px] text-center py-2 font-mono" style={{ color: "var(--fg-faint)" }}>
+            {isHost ? "Drop players here" : "Empty"}
+          </p>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// ─── Player Chip ─────────────────────────────────────────────────────────────
+
+function PlayerChip({
+  player,
+  draggable,
+  onUnassign,
+  dimmed,
+}: {
+  player: OnlinePlayer;
+  draggable?: boolean;
+  onUnassign?: () => void;
+  dimmed?: boolean;
+}) {
+  return (
+    <div
+      draggable={draggable}
+      onDragStart={(e) => e.dataTransfer.setData("playerId", player.id)}
+      className="flex items-center gap-1.5 px-2 py-1.5 rounded-lg text-xs font-medium select-none"
+      style={{
+        background: "var(--surface-hover)",
+        border: "1px solid var(--border)",
+        cursor: draggable ? "grab" : "default",
+        opacity: dimmed ? 0.4 : 1,
+        transition: "opacity 0.15s",
+      }}
+    >
+      <span
+        className="w-2 h-2 rounded-full flex-shrink-0"
+        style={{ backgroundColor: player.color, boxShadow: `0 0 4px ${player.color}80` }}
+      />
+      <span className="flex-1 truncate" style={{ color: "var(--fg)" }}>{player.name}</span>
+      {onUnassign && (
+        <button
+          onClick={onUnassign}
+          className="opacity-30 hover:opacity-80 leading-none ml-0.5"
+          style={{ color: "var(--fg)" }}
+        >
+          ✕
+        </button>
+      )}
+    </div>
+  );
+}
+
+// ─── Main Component ───────────────────────────────────────────────────────────
 
 export default function OnlineLobbyScreen({ onBack }: OnlineLobbyScreenProps) {
   const searchParams = useSearchParams();
@@ -18,9 +169,13 @@ export default function OnlineLobbyScreen({ onBack }: OnlineLobbyScreenProps) {
   const [maxRounds, setMaxRounds] = useState(8);
   const [codeCopied, setCodeCopied] = useState(false);
   const [linkCopied, setLinkCopied] = useState(false);
+  const [newTeamName, setNewTeamName] = useState("");
 
-  const { room, playerId, isConnecting, error, createRoom, joinRoom, startGame, leaveRoom, clearError } =
-    useOnlineStore();
+  const {
+    room, playerId, isConnecting, error,
+    createRoom, joinRoom, startGame, leaveRoom, clearError,
+    createTeam, deleteTeam, renameTeam, assignPlayer,
+  } = useOnlineStore();
 
   useEffect(() => {
     if (prefilledCode) {
@@ -31,7 +186,28 @@ export default function OnlineLobbyScreen({ onBack }: OnlineLobbyScreenProps) {
 
   const isInRoom = !!room;
   const isHost = room?.hostPlayerId === playerId;
-  const canStart = isHost && (room?.players.length ?? 0) >= 2;
+
+  // Validation for start game
+  const unassignedPlayers = room?.players.filter((p) => !p.teamId) ?? [];
+  const emptyTeams = room?.teams.filter((t) => t.players.length === 0) ?? [];
+  const canStart =
+    isHost &&
+    (room?.teams.length ?? 0) >= 2 &&
+    unassignedPlayers.length === 0 &&
+    emptyTeams.length === 0 &&
+    (room?.players.length ?? 0) >= 2;
+
+  const startDisabledReason = isHost
+    ? (room?.teams.length ?? 0) < 2
+      ? "Create at least 2 teams"
+      : unassignedPlayers.length > 0
+      ? `${unassignedPlayers.length} player(s) unassigned`
+      : emptyTeams.length > 0
+      ? `"${emptyTeams[0].name}" is empty`
+      : (room?.players.length ?? 0) < 2
+      ? "Need 2+ players"
+      : null
+    : null;
 
   const handleCreate = async () => {
     if (!name.trim()) return;
@@ -58,14 +234,26 @@ export default function OnlineLobbyScreen({ onBack }: OnlineLobbyScreenProps) {
     setTimeout(() => setLinkCopied(false), 2000);
   };
 
-  // ─── In-room lobby ─────────────────────────────────────────────────────────
-  if (isInRoom && room) {
-    return (
-      <div className="min-h-screen flex flex-col items-center justify-center px-4 py-12" style={{ color: "var(--fg)" }}>
-        <div className="w-full max-w-sm space-y-5">
+  const handleAssign = async (targetPlayerId: string, teamId: string) => {
+    await assignPlayer(targetPlayerId, teamId || null);
+  };
 
-          {/* Wordmark */}
-          <div className="text-center mb-2">
+  const handleCreateTeam = async () => {
+    const n = newTeamName.trim() || `Team ${(room?.teams.length ?? 0) + 1}`;
+    await createTeam(n);
+    setNewTeamName("");
+  };
+
+  // ─── In-room lobby ──────────────────────────────────────────────────────────
+  if (isInRoom && room) {
+    const unassigned = room.players.filter((p) => !p.teamId);
+
+    return (
+      <div className="min-h-screen flex flex-col items-center px-4 py-8" style={{ color: "var(--fg)" }}>
+        <div className="w-full max-w-2xl space-y-5">
+
+          {/* Header */}
+          <div className="text-center">
             <p className="text-xs tracking-[0.3em] uppercase font-mono mb-1" style={{ color: "var(--fg-faint)" }}>
               Online Game
             </p>
@@ -74,119 +262,51 @@ export default function OnlineLobbyScreen({ onBack }: OnlineLobbyScreenProps) {
             </h1>
           </div>
 
-          {/* Room code card */}
+          {/* Room code + share */}
           <div
             className="rounded-2xl overflow-hidden"
             style={{ background: "var(--surface)", border: "1px solid var(--border)" }}
           >
-            <div className="px-5 pt-5 pb-4 text-center">
-              <p className="text-xs font-mono uppercase tracking-[0.2em] mb-3" style={{ color: "var(--fg-muted)" }}>
-                Room Code
-              </p>
-              {/* Glowing code */}
-              <div
-                className="font-mono font-black tracking-[0.25em] text-5xl mb-4 leading-none"
-                style={{
-                  color: "var(--accent)",
-                  textShadow: "0 0 32px rgba(46,196,182,0.35), 0 0 8px rgba(46,196,182,0.2)",
-                }}
-              >
-                {room.id}
+            <div className="px-5 pt-4 pb-4 flex items-center gap-4">
+              <div className="flex-1">
+                <p className="text-[10px] font-mono uppercase tracking-[0.2em] mb-1" style={{ color: "var(--fg-muted)" }}>
+                  Room Code
+                </p>
+                <div
+                  className="font-mono font-black tracking-[0.2em] text-3xl leading-none"
+                  style={{
+                    color: "var(--accent)",
+                    textShadow: "0 0 24px rgba(46,196,182,0.3)",
+                  }}
+                >
+                  {room.id}
+                </div>
               </div>
-              {/* Share row */}
               <div className="flex gap-2">
                 <button
                   onClick={copyCode}
-                  className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl text-xs font-semibold tracking-wide transition-all duration-200"
+                  className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold tracking-wide transition-all"
                   style={{
                     background: codeCopied ? "var(--accent)" : "rgba(255,255,255,0.07)",
                     border: `1px solid ${codeCopied ? "var(--accent)" : "var(--border)"}`,
                     color: codeCopied ? "#000" : "var(--fg-muted)",
                   }}
                 >
-                  {codeCopied ? (
-                    <svg width="13" height="13" viewBox="0 0 14 14" fill="none"><path d="M2 7l3.5 3.5L12 4" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
-                  ) : (
-                    <svg width="13" height="13" viewBox="0 0 14 14" fill="none"><rect x="4.5" y="4.5" width="8" height="8" rx="1.5" stroke="currentColor" strokeWidth="1.3"/><path d="M2.5 9.5V2.5A1 1 0 0 1 3.5 1.5H9.5" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round"/></svg>
-                  )}
-                  {codeCopied ? "Copied!" : "Copy Code"}
+                  {codeCopied ? "✓ Copied" : "Copy Code"}
                 </button>
                 <button
                   onClick={copyInviteLink}
-                  className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl text-xs font-semibold tracking-wide transition-all duration-200"
+                  className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold tracking-wide transition-all"
                   style={{
                     background: linkCopied ? "var(--accent)" : "rgba(255,255,255,0.07)",
                     border: `1px solid ${linkCopied ? "var(--accent)" : "var(--border)"}`,
                     color: linkCopied ? "#000" : "var(--fg-muted)",
                   }}
                 >
-                  {linkCopied ? (
-                    <svg width="13" height="13" viewBox="0 0 14 14" fill="none"><path d="M2 7l3.5 3.5L12 4" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
-                  ) : (
-                    <svg width="13" height="13" viewBox="0 0 13 13" fill="none"><path d="M7.5 1h4v4M8 5.5 11.5 2M5.5 3.5H2A1 1 0 0 0 1 4.5v7A1 1 0 0 0 2 12.5h7a1 1 0 0 0 1-1V8" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round"/></svg>
-                  )}
-                  {linkCopied ? "Copied!" : "Invite Link"}
+                  {linkCopied ? "✓ Copied" : "Invite Link"}
                 </button>
               </div>
             </div>
-          </div>
-
-          {/* Players */}
-          <div
-            className="rounded-2xl overflow-hidden"
-            style={{ background: "var(--surface)", border: "1px solid var(--border)" }}
-          >
-            <div
-              className="px-4 py-3 flex items-center justify-between"
-              style={{ borderBottom: "1px solid var(--border)" }}
-            >
-              <span className="text-xs font-mono uppercase tracking-widest" style={{ color: "var(--fg-muted)" }}>
-                Players
-              </span>
-              <span className="text-xs font-mono" style={{ color: "var(--fg-faint)" }}>
-                {room.players.length} / 6
-              </span>
-            </div>
-            <ul>
-              {room.players.map((player, i) => (
-                <li
-                  key={player.id}
-                  className="flex items-center gap-3 px-4 py-3"
-                  style={i < room.players.length - 1 ? { borderBottom: "1px solid var(--border)" } : {}}
-                >
-                  <span
-                    className="w-2.5 h-2.5 rounded-full flex-shrink-0"
-                    style={{
-                      backgroundColor: player.color,
-                      boxShadow: `0 0 6px ${player.color}80`,
-                    }}
-                  />
-                  <span className="flex-1 text-sm font-medium">
-                    {player.name}
-                    {player.id === playerId && (
-                      <span className="ml-2 text-xs" style={{ color: "var(--fg-muted)" }}>you</span>
-                    )}
-                  </span>
-                  {player.id === room.hostPlayerId && (
-                    <span
-                      className="text-[10px] font-mono uppercase tracking-wider px-2 py-0.5 rounded-full"
-                      style={{
-                        background: "rgba(46,196,182,0.12)",
-                        color: "var(--accent)",
-                        border: "1px solid rgba(46,196,182,0.25)",
-                      }}
-                    >
-                      host
-                    </span>
-                  )}
-                </li>
-              ))}
-              {room.players.length === 1 && (
-                <li className="px-4 py-4 text-xs text-center font-mono" style={{ color: "var(--fg-faint)" }}>
-                  Waiting for players to join...
-                </li>
-              )}
-            </ul>
           </div>
 
           {/* Error */}
@@ -199,6 +319,118 @@ export default function OnlineLobbyScreen({ onBack }: OnlineLobbyScreenProps) {
               <button onClick={clearError} className="text-base leading-none opacity-60 hover:opacity-100">×</button>
             </div>
           )}
+
+          {/* Team Assignment Section */}
+          <div
+            className="rounded-2xl overflow-hidden"
+            style={{ background: "var(--surface)", border: "1px solid var(--border)" }}
+          >
+            <div
+              className="px-4 py-3 flex items-center justify-between"
+              style={{ borderBottom: "1px solid var(--border)" }}
+            >
+              <span className="text-xs font-mono uppercase tracking-widest" style={{ color: "var(--fg-muted)" }}>
+                Team Assignment
+              </span>
+              <span className="text-xs font-mono" style={{ color: "var(--fg-faint)" }}>
+                {room.players.length} players · {room.teams.length} teams
+              </span>
+            </div>
+
+            <div className="p-4 space-y-4">
+              {/* Unassigned players pool */}
+              {(unassigned.length > 0 || room.teams.length === 0) && (
+                <div>
+                  <p className="text-[10px] font-mono uppercase tracking-widest mb-2" style={{ color: "var(--fg-faint)" }}>
+                    {unassigned.length > 0 ? `Unassigned (${unassigned.length})` : "All players assigned"}
+                  </p>
+                  {unassigned.length > 0 ? (
+                    <div className="flex flex-wrap gap-1.5">
+                      {unassigned.map((player) => (
+                        <PlayerChip
+                          key={player.id}
+                          player={player}
+                          draggable={isHost}
+                        />
+                      ))}
+                    </div>
+                  ) : (
+                    <p className="text-xs" style={{ color: "var(--fg-muted)" }}>
+                      All players are assigned to teams.
+                    </p>
+                  )}
+                </div>
+              )}
+
+              {/* Teams */}
+              {room.teams.length > 0 ? (
+                <div className="overflow-x-auto">
+                  <div className="flex gap-3 pb-1" style={{ minWidth: "max-content" }}>
+                    {room.teams.map((team) => (
+                      <TeamColumn
+                        key={team.id}
+                        team={team}
+                        players={team.players}
+                        isHost={!!isHost}
+                        onAssign={handleAssign}
+                        onDelete={deleteTeam}
+                        onRename={renameTeam}
+                      />
+                    ))}
+                  </div>
+                </div>
+              ) : (
+                <p className="text-sm text-center py-2" style={{ color: "var(--fg-faint)" }}>
+                  {isHost ? "Create teams below, then drag players into them." : "Waiting for host to create teams..."}
+                </p>
+              )}
+
+              {/* Add team (host only) */}
+              {isHost && (
+                <div className="flex gap-2">
+                  <input
+                    value={newTeamName}
+                    onChange={(e) => setNewTeamName(e.target.value.slice(0, 20))}
+                    onKeyDown={(e) => e.key === "Enter" && handleCreateTeam()}
+                    placeholder={`Team ${(room.teams.length) + 1}`}
+                    className="flex-1 rounded-xl px-3 py-2 text-sm outline-none"
+                    style={{
+                      background: "var(--input-bg)",
+                      border: "1px solid var(--border)",
+                      color: "var(--fg)",
+                    }}
+                  />
+                  <button
+                    onClick={handleCreateTeam}
+                    className="px-4 py-2 rounded-xl text-sm font-semibold transition-all hover:opacity-90"
+                    style={{ background: "var(--accent)", color: "#000" }}
+                  >
+                    + Add Team
+                  </button>
+                </div>
+              )}
+
+              {/* Instructions for non-host */}
+              {!isHost && (
+                <p className="text-xs text-center" style={{ color: "var(--fg-faint)" }}>
+                  The host is arranging teams. You&apos;ll be notified when it&apos;s time to play.
+                </p>
+              )}
+            </div>
+          </div>
+
+          {/* Round settings (host only, shown as info otherwise) */}
+          <div
+            className="rounded-xl px-4 py-3 flex items-center justify-between"
+            style={{ background: "var(--surface)", border: "1px solid var(--border)" }}
+          >
+            <span className="text-xs font-mono uppercase tracking-widest" style={{ color: "var(--fg-muted)" }}>
+              Rounds
+            </span>
+            <span className="text-sm font-bold font-mono" style={{ color: "var(--accent)" }}>
+              {room.maxRounds}
+            </span>
+          </div>
 
           {/* Actions */}
           <div className="space-y-2.5">
@@ -214,14 +446,18 @@ export default function OnlineLobbyScreen({ onBack }: OnlineLobbyScreenProps) {
                   opacity: isConnecting ? 0.6 : 1,
                 }}
               >
-                {isConnecting ? "Starting..." : canStart ? "Start Game" : "Need 2+ players"}
+                {isConnecting
+                  ? "Starting..."
+                  : canStart
+                  ? "Start Game"
+                  : startDisabledReason ?? "Set up teams first"}
               </button>
             ) : (
               <div
                 className="w-full py-4 rounded-xl text-base text-center font-semibold select-none"
                 style={{ background: "var(--surface)", color: "var(--fg-muted)", border: "1px solid var(--border)" }}
               >
-                Waiting for host...
+                Waiting for host to start...
               </div>
             )}
             <button
@@ -232,6 +468,7 @@ export default function OnlineLobbyScreen({ onBack }: OnlineLobbyScreenProps) {
               Leave Room
             </button>
           </div>
+
         </div>
       </div>
     );
@@ -248,7 +485,9 @@ export default function OnlineLobbyScreen({ onBack }: OnlineLobbyScreenProps) {
           className="flex items-center gap-1.5 text-xs font-mono uppercase tracking-widest transition-opacity hover:opacity-80"
           style={{ color: "var(--fg-muted)" }}
         >
-          <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M9 11.5L4.5 7 9 2.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>
+          <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+            <path d="M9 11.5L4.5 7 9 2.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+          </svg>
           Back
         </button>
 

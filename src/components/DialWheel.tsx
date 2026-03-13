@@ -1,10 +1,10 @@
 "use client";
 
-import { useRef, useCallback, useEffect } from "react";
+import { useRef, useCallback, useEffect, useState } from "react";
 
 interface DialWheelProps {
   dialAngle: number; // 0-180
-  targetAngle: number; // 0-180
+  targetAngle?: number; // 0-180 — omit to hide the target (screen stays closed visually)
   isScreenOpen: boolean;
   onAngleChange?: (angle: number) => void;
   disabled?: boolean;
@@ -12,7 +12,6 @@ interface DialWheelProps {
 }
 
 // Converts a degree where 0 is straight UP (y=0) to SVG coordinates.
-// We use this to easily draw wedges symmetric around 0, then rotate them.
 function polarUp(cx: number, cy: number, r: number, angleDeg: number) {
   const rad = (angleDeg - 90) * Math.PI / 180;
   return {
@@ -25,8 +24,12 @@ function polarUp(cx: number, cy: number, r: number, angleDeg: number) {
 function wedgePath(cx: number, cy: number, r: number, startAngle: number, endAngle: number) {
   const start = polarUp(cx, cy, r, startAngle);
   const end = polarUp(cx, cy, r, endAngle);
-  // our wedges are always < 180 degrees, so largeArcFlag is 0
   return `M ${cx} ${cy} L ${start.x} ${start.y} A ${r} ${r} 0 0 1 ${end.x} ${end.y} Z`;
+}
+
+// Smooth lerp between two angles
+function lerp(a: number, b: number, t: number): number {
+  return a + (b - a) * t;
 }
 
 export default function DialWheel({
@@ -40,10 +43,62 @@ export default function DialWheel({
   const svgRef = useRef<SVGSVGElement>(null);
   const isDragging = useRef(false);
 
+  // Smoothly interpolated display angle for the needle — prevents jarring jumps
+  // when receiving remote dial-moved events
+  const [displayAngle, setDisplayAngle] = useState(dialAngle);
+  const displayAngleRef = useRef(dialAngle);
+  const targetDisplayAngle = useRef(dialAngle);
+  const rafRef = useRef<number | null>(null);
+
+  // When dragging locally, skip lerp for immediate response
+  // When receiving remote updates, lerp smoothly
+  useEffect(() => {
+    if (isDragging.current) {
+      // Local drag — update immediately, no lerp
+      setDisplayAngle(dialAngle);
+      displayAngleRef.current = dialAngle;
+      targetDisplayAngle.current = dialAngle;
+      return;
+    }
+
+    // Remote update — animate toward the new target
+    targetDisplayAngle.current = dialAngle;
+
+    if (rafRef.current) return; // Animation already running
+
+    const animate = () => {
+      const current = displayAngleRef.current;
+      const target = targetDisplayAngle.current;
+      const diff = Math.abs(target - current);
+
+      if (diff < 0.15) {
+        // Close enough — snap and stop
+        displayAngleRef.current = target;
+        setDisplayAngle(target);
+        rafRef.current = null;
+        return;
+      }
+
+      const next = lerp(current, target, 0.25);
+      displayAngleRef.current = next;
+      setDisplayAngle(next);
+      rafRef.current = requestAnimationFrame(animate);
+    };
+
+    rafRef.current = requestAnimationFrame(animate);
+
+    return () => {
+      if (rafRef.current) {
+        cancelAnimationFrame(rafRef.current);
+        rafRef.current = null;
+      }
+    };
+  }, [dialAngle]);
+
   const cx = 200;
   const cy = 200;
-  const targetRadius = 170; // Inner radius where target is painted
-  const dialRadius = 180;   // Outer bezel radius
+  const targetRadius = 170;
+  const dialRadius = 180;
 
   // Convert client coordinates to 0-180 angle where 0 is left, 90 is top, 180 is right
   const getAngleFromEvent = useCallback(
@@ -51,13 +106,12 @@ export default function DialWheel({
       if (!svgRef.current) return dialAngle;
       const rect = svgRef.current.getBoundingClientRect();
       const centerX = rect.left + rect.width / 2;
-      const centerY = rect.top + rect.height; // cy is at the bottom of the bounding box
+      const centerY = rect.top + rect.height;
 
       const dx = clientX - centerX;
-      const dy = centerY - clientY; 
-      let mathAngle = (Math.atan2(dy, dx) * 180) / Math.PI; 
-      
-      let finalAngle = 180 - mathAngle;
+      const dy = centerY - clientY;
+      const mathAngle = (Math.atan2(dy, dx) * 180) / Math.PI;
+      const finalAngle = 180 - mathAngle;
       return Math.max(0, Math.min(180, finalAngle));
     },
     [dialAngle]
@@ -113,15 +167,17 @@ export default function DialWheel({
     }
   };
 
-  // Convert 0-180 internal angle to SVG rotation degrees (-90 to +90)
-  // so that an angle of 90 (center) maps to 0deg rotation (straight UP in SVG).
-  const toRot = (gameAngle: number) => gameAngle - 90; 
+  // 0-180 internal angle → SVG rotation degrees (90° game angle = 0° SVG = straight UP)
+  const toRot = (gameAngle: number) => gameAngle - 90;
+
+  // Whether to actually render the scoring wedges
+  const showWedges = targetAngle !== undefined;
 
   return (
     <div className="relative w-full aspect-[2/1] overflow-hidden rounded-t-full shadow-2xl bg-[#0d1117] border-[6px] border-b-0 border-[#1a2035] select-none touch-none">
       <svg
         ref={svgRef}
-        viewBox={`0 0 400 200`}
+        viewBox="0 0 400 200"
         className={`w-full h-full block ${disabled ? "cursor-default" : "cursor-grab active:cursor-grabbing"}`}
         onMouseDown={startDrag}
         onTouchStart={startDrag}
@@ -135,33 +191,28 @@ export default function DialWheel({
           </clipPath>
         </defs>
 
-        {/* Clipped background to strictly prevent screen bleed */}
+        {/* Clipped background */}
         <g clipPath="url(#screenClip)">
-          {/* Base starfield background layer for the screen area */}
-          <rect x="0" y="0" width="400" height="200" fill="url(#dialBg)" opacity="0.1" />
-
           {/* Stars */}
           {[
             [50, 150], [120, 80], [80, 40], [170, 120], [240, 60],
             [320, 140], [360, 80], [280, 100], [200, 30], [140, 160],
-            [100, 120], [300, 50], [220, 170], [260, 140]
+            [100, 120], [300, 50], [220, 170], [260, 140],
           ].map(([x, y], i) => (
             <circle key={i} cx={x} cy={y} r={i % 2 === 0 ? 1.5 : 1} fill="white" opacity={0.5 + (i % 4) * 0.1} />
           ))}
 
-          {/* Target Zones drawn as true wedges, matching board game scoring bands */}
-          <g transform={`rotate(${toRot(targetAngle)}, ${cx}, ${cy})`}>
-            {/* Outer Zone (2pt) - Yellow */}
-            <path d={wedgePath(cx, cy, targetRadius, -26, 26)} fill="#facc15" />
-            {/* Inner Zone (3pt) - Orange */}
-            <path d={wedgePath(cx, cy, targetRadius, -16, 16)} fill="#f97316" />
-            {/* Bullseye (4pt) - Blue */}
-            <path d={wedgePath(cx, cy, targetRadius, -6, 6)} fill="#3b82f6" />
-
-          </g>
+          {/* Scoring wedges — only render when target is visible */}
+          {showWedges && (
+            <g transform={`rotate(${toRot(targetAngle!)}, ${cx}, ${cy})`}>
+              <path d={wedgePath(cx, cy, targetRadius, -26, 26)} fill="#facc15" />
+              <path d={wedgePath(cx, cy, targetRadius, -16, 16)} fill="#f97316" />
+              <path d={wedgePath(cx, cy, targetRadius, -6, 6)} fill="#3b82f6" />
+            </g>
+          )}
         </g>
 
-        {/* The Mechanical Screens that rotate to cover/uncover the target */}
+        {/* Screen panels — animate open/closed */}
         <g>
           {/* Left Screen */}
           <path
@@ -189,10 +240,10 @@ export default function DialWheel({
           />
         </g>
 
-        {/* Base cover rectangle to hide the screens when they rotate down */}
+        {/* Cover rectangle below the arc */}
         <rect x="0" y="200" width="400" height="200" fill="#0d1117" />
 
-        {/* Inner rim border drawn over screens to frame the playable area neatly */}
+        {/* Inner rim border */}
         <path
           d={`M ${cx - targetRadius} ${cy} A ${targetRadius} ${targetRadius} 0 0 1 ${cx + targetRadius} ${cy}`}
           fill="none"
@@ -201,33 +252,29 @@ export default function DialWheel({
           className="pointer-events-none"
         />
 
-        {/* Needle */}
-        <g transform={`rotate(${toRot(dialAngle)}, ${cx}, ${cy})`} filter="url(#shadow)">
+        {/* Needle — uses interpolated display angle for smoothness */}
+        <g transform={`rotate(${toRot(displayAngle)}, ${cx}, ${cy})`} filter="url(#shadow)">
           <line
-            x1={cx}
-            y1={cy}
-            x2={cx}
-            y2={cy - dialRadius + 10} // Extend needle slightly over the rim
+            x1={cx} y1={cy}
+            x2={cx} y2={cy - dialRadius + 10}
             stroke={teamColor}
             strokeWidth="8"
             strokeLinecap="round"
           />
           <line
-            x1={cx}
-            y1={cy}
-            x2={cx}
-            y2={cy - dialRadius + 10}
+            x1={cx} y1={cy}
+            x2={cx} y2={cy - dialRadius + 10}
             stroke="#ffffff"
             strokeWidth="2"
             strokeLinecap="round"
             opacity="0.4"
           />
-          {/* Center Pivot Hub */}
+          {/* Center hub */}
           <circle cx={cx} cy={cy} r="26" fill={teamColor} />
           <circle cx={cx} cy={cy} r="14" fill="#ffffff" opacity="0.9" />
         </g>
-        
-        {/* Base line thick cover to ensure no bottom-edge bleeding */}
+
+        {/* Bottom edge cover */}
         <line x1="0" y1="200" x2="400" y2="200" stroke="#1a2035" strokeWidth="8" />
       </svg>
     </div>

@@ -4,7 +4,6 @@ import { Suspense } from "react";
 import { useRouter } from "next/navigation";
 import { useOnlineStore } from "@/lib/online-store";
 import ThemeWrapper from "@/components/ThemeWrapper";
-import TopNav from "@/components/TopNav";
 import OnlineLobbyScreen from "@/components/OnlineLobbyScreen";
 import OnlineGameBoard from "@/components/OnlineGameBoard";
 
@@ -18,11 +17,12 @@ function OnlinePageInner() {
     router.push("/");
   };
 
+  const inGame = room && room.phase !== "lobby";
+
   return (
     <ThemeWrapper>
-      <TopNav />
-      <main className="min-h-screen max-w-2xl mx-auto pt-12">
-        {room && room.phase !== "lobby" ? (
+      <main className={`min-h-screen ${inGame ? "" : "max-w-2xl mx-auto"}`}>
+        {inGame ? (
           <OnlineGameBoard />
         ) : (
           <OnlineLobbyScreen onBack={handleBack} />

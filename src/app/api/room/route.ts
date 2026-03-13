@@ -1,8 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getSql, getRoomWithPlayers } from "@/lib/db";
-import { pusher, roomChannel, EVENTS } from "@/lib/pusher-server";
-import { getRandomConcept, getRandomTargetAngle } from "@/lib/concepts";
-import { TEAM_COLORS } from "@/lib/store";
 
 function generateRoomCode(): string {
   const chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
@@ -20,16 +17,16 @@ export async function POST(req: NextRequest) {
 
     const roomId = generateRoomCode();
     const hostPlayerId = crypto.randomUUID();
-    const hostColor = TEAM_COLORS[0];
 
     await sql`
       INSERT INTO rooms (id, host_player_id, max_rounds, used_concept_indices)
       VALUES (${roomId}, ${hostPlayerId}, ${maxRounds}, '[]')
     `;
 
+    // Host player joins with no team assigned (team_id = null)
     await sql`
-      INSERT INTO players (id, room_id, name, color, team_index)
-      VALUES (${hostPlayerId}, ${roomId}, ${hostName.trim()}, ${hostColor}, 0)
+      INSERT INTO players (id, room_id, name, color, team_id, psychic_order)
+      VALUES (${hostPlayerId}, ${roomId}, ${hostName.trim()}, '#E63946', NULL, 0)
     `;
 
     const room = await getRoomWithPlayers(roomId);

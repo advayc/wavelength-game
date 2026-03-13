@@ -1,6 +1,6 @@
 import { create } from "zustand";
 import Pusher, { Channel } from "pusher-js";
-import type { OnlineRoom } from "./db";
+import type { OnlineRoom, OnlineTeam, OnlinePlayer } from "./db";
 
 export interface OnlineGameState {
   // Connection state
@@ -14,17 +14,41 @@ export interface OnlineGameState {
   _pusherClient: Pusher | null;
   _pusherChannel: Channel | null;
 
-  // Actions
+  // ── Derived helpers ────────────────────────────────────────────────────────
+  /** The player object for the local user */
+  getMe: () => OnlinePlayer | null;
+  /** The team the local user belongs to */
+  getMyTeam: () => OnlineTeam | null;
+  /** The currently active team (whose turn it is) */
+  getActiveTeam: () => OnlineTeam | null;
+  /** Is the local user on the currently active team? */
+  isMyTeamActive: () => boolean;
+  /** Is the local user the current psychic? */
+  isMyTurnAsPsychic: () => boolean;
+  /** Can the local user drag the dial right now? */
+  canDragDial: () => boolean;
+
+  // ── Room lifecycle ─────────────────────────────────────────────────────────
   createRoom: (hostName: string, maxRounds?: number) => Promise<void>;
   joinRoom: (roomId: string, playerName: string) => Promise<void>;
   leaveRoom: () => void;
   refreshRoom: () => Promise<void>;
+
+  // ── Lobby: team management ─────────────────────────────────────────────────
+  createTeam: (name: string) => Promise<void>;
+  deleteTeam: (teamId: string) => Promise<void>;
+  renameTeam: (teamId: string, name: string) => Promise<void>;
+  assignPlayer: (targetPlayerId: string, teamId: string | null) => Promise<void>;
+
+  // ── Game actions ───────────────────────────────────────────────────────────
   startGame: () => Promise<void>;
   startGuessing: () => Promise<void>;
   setDialAngle: (angle: number) => Promise<void>;
   revealAndScore: () => Promise<void>;
   nextTurn: () => Promise<void>;
+  skipTurn: () => Promise<void>;
   resetGame: () => Promise<void>;
+
   clearError: () => void;
   _subscribeToRoom: (roomId: string) => void;
 }
@@ -51,6 +75,52 @@ export const useOnlineStore = create<OnlineGameState>((set, get) => ({
   _pusherClient: null,
   _pusherChannel: null,
 
+  // ── Derived helpers ──────────────────────────────────────────────────────
+
+  getMe: () => {
+    const { room, playerId } = get();
+    if (!room || !playerId) return null;
+    return room.players.find((p) => p.id === playerId) ?? null;
+  },
+
+  getMyTeam: () => {
+    const { room } = get();
+    const me = get().getMe();
+    if (!room || !me || !me.teamId) return null;
+    return room.teams.find((t) => t.id === me.teamId) ?? null;
+  },
+
+  getActiveTeam: () => {
+    const { room } = get();
+    if (!room || !room.currentTeamId) return null;
+    return room.teams.find((t) => t.id === room.currentTeamId) ?? null;
+  },
+
+  isMyTeamActive: () => {
+    const { room } = get();
+    const me = get().getMe();
+    if (!room || !me) return false;
+    return me.teamId !== null && me.teamId === room.currentTeamId;
+  },
+
+  isMyTurnAsPsychic: () => {
+    const { room, playerId } = get();
+    if (!room || !playerId) return false;
+    return room.currentPsychicId === playerId;
+  },
+
+  canDragDial: () => {
+    const { room } = get();
+    if (!room) return false;
+    return (
+      room.phase === "guessing" &&
+      get().isMyTeamActive() &&
+      !get().isMyTurnAsPsychic()
+    );
+  },
+
+  // ── Room lifecycle ────────────────────────────────────────────────────────
+
   createRoom: async (hostName, maxRounds = 8) => {
     set({ isConnecting: true, error: null });
     try {
@@ -64,7 +134,6 @@ export const useOnlineStore = create<OnlineGameState>((set, get) => ({
         throw new Error(data.error || "Failed to create room");
       }
       const { room, playerId } = await res.json();
-      // Subscribe first, then update state so we don't miss any early events
       get()._subscribeToRoom(room.id);
       set({ room, roomId: room.id, playerId, isConnecting: false });
     } catch (err) {
@@ -124,6 +193,50 @@ export const useOnlineStore = create<OnlineGameState>((set, get) => ({
     }
   },
 
+  // ── Lobby: team management ────────────────────────────────────────────────
+
+  createTeam: async (name: string) => {
+    const { roomId, playerId } = get();
+    if (!roomId || !playerId) return;
+    try {
+      await callAction(roomId, { type: "create_team", playerId, name });
+    } catch (err) {
+      set({ error: (err as Error).message });
+    }
+  },
+
+  deleteTeam: async (teamId: string) => {
+    const { roomId, playerId } = get();
+    if (!roomId || !playerId) return;
+    try {
+      await callAction(roomId, { type: "delete_team", playerId, teamId });
+    } catch (err) {
+      set({ error: (err as Error).message });
+    }
+  },
+
+  renameTeam: async (teamId: string, name: string) => {
+    const { roomId, playerId } = get();
+    if (!roomId || !playerId) return;
+    try {
+      await callAction(roomId, { type: "rename_team", playerId, teamId, name });
+    } catch (err) {
+      set({ error: (err as Error).message });
+    }
+  },
+
+  assignPlayer: async (targetPlayerId: string, teamId: string | null) => {
+    const { roomId, playerId } = get();
+    if (!roomId || !playerId) return;
+    try {
+      await callAction(roomId, { type: "assign_player", playerId, targetPlayerId, teamId });
+    } catch (err) {
+      set({ error: (err as Error).message });
+    }
+  },
+
+  // ── Game actions ──────────────────────────────────────────────────────────
+
   startGame: async () => {
     const { roomId, playerId } = get();
     if (!roomId || !playerId) return;
@@ -150,7 +263,7 @@ export const useOnlineStore = create<OnlineGameState>((set, get) => ({
   setDialAngle: async (angle: number) => {
     const { roomId, playerId } = get();
     if (!roomId || !playerId) return;
-    // Optimistically update local state for smooth dragging
+    // Optimistic update for smooth local dragging
     set((s) => s.room ? { room: { ...s.room!, dialAngle: angle } } : {});
     try {
       await callAction(roomId, { type: "set_dial", playerId, angle });
@@ -179,6 +292,16 @@ export const useOnlineStore = create<OnlineGameState>((set, get) => ({
     }
   },
 
+  skipTurn: async () => {
+    const { roomId, playerId } = get();
+    if (!roomId || !playerId) return;
+    try {
+      await callAction(roomId, { type: "skip_turn", playerId });
+    } catch (err) {
+      set({ error: (err as Error).message });
+    }
+  },
+
   resetGame: async () => {
     const { roomId, playerId } = get();
     if (!roomId || !playerId) return;
@@ -191,9 +314,9 @@ export const useOnlineStore = create<OnlineGameState>((set, get) => ({
 
   clearError: () => set({ error: null }),
 
-  // Internal: subscribe to Pusher room channel
+  // ── Pusher subscription ───────────────────────────────────────────────────
+
   _subscribeToRoom: (roomId: string) => {
-    // Tear down any existing connection first
     const { _pusherChannel, _pusherClient } = get();
     if (_pusherChannel) {
       _pusherChannel.unbind_all();
@@ -213,7 +336,7 @@ export const useOnlineStore = create<OnlineGameState>((set, get) => ({
       set({ room: data.room });
     });
 
-    // Smooth dial sync — lightweight event, no full room update
+    // Lightweight dial sync — avoids sending full room on every drag tick
     channel.bind("dial-moved", (data: { angle: number }) => {
       set((s) => s.room ? { room: { ...s.room!, dialAngle: data.angle } } : {});
     });
