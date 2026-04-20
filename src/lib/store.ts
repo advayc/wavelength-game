@@ -32,6 +32,7 @@ export interface GameState {
   revealAndScore: () => void;
   nextTurn: () => void;
   skipTurn: () => void;
+  skipTarget: () => void;
   toggleDarkMode: () => void;
   resetGame: () => void;
 }
@@ -145,6 +146,26 @@ export const useGameStore = create<GameState>((set, get) => ({
 
   skipTurn: () => {
     get().nextTurn();
+  },
+
+  skipTarget: () => {
+    const state = get();
+    
+    const result = getRandomConcept(state.usedConceptIndices);
+    const newUsed = new Set(state.usedConceptIndices);
+    if (result) {
+      newUsed.add(result.index);
+      recordConceptSeen(result.index);
+    }
+
+    set({
+      phase: "psychic",
+      currentConcept: result?.pair ?? null,
+      targetAngle: getRandomTargetAngle(),
+      dialAngle: 90,
+      isScreenOpen: true,
+      usedConceptIndices: newUsed,
+    });
   },
 
   toggleDarkMode: () => set((s) => ({ isDarkMode: !s.isDarkMode })),

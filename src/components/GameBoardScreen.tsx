@@ -17,6 +17,7 @@ export default function GameBoardScreen() {
     startGuessing,
     revealAndScore,
     nextTurn,
+    skipTarget,
     lastScore,
   } = useGameStore();
 
@@ -80,6 +81,13 @@ export default function GameBoardScreen() {
                   style={{ backgroundColor: currentTeam.color }}
                 >
                   HIDE TARGET & GUESS
+                </button>
+                <button
+                  onClick={skipTarget}
+                  className="w-full py-4 rounded-xl text-lg font-black active:scale-[0.98] transition-all border"
+                  style={{ background: "var(--surface-hover)", borderColor: "var(--border)", color: "var(--fg)" }}
+                >
+                  SKIP TARGET
                 </button>
               </div>
             )}
