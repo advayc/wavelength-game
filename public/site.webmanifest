@@ -1,0 +1,16 @@
+{
+  "name": "Wavelength — Party Game",
+  "short_name": "Wavelength",
+  "description": "The mind-reading party game. Give clues. Read minds. Get on the same wavelength.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#0a0b0f",
+  "theme_color": "#0a0b0f",
+  "icons": [
+    {
+      "src": "/logo.svg",
+      "sizes": "any",
+      "type": "image/svg+xml"
+    }
+  ]
+}

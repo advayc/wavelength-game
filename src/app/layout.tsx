@@ -15,13 +15,34 @@ const spaceMono = Space_Mono({
   display: "swap",
 });
 
+export const metadataBase = new URL("https://wavelength-game.vercel.app");
+
 export const metadata: Metadata = {
   title: "Wavelength — Party Game",
   description: "The mind-reading party game. Give clues. Read minds. Get on the same wavelength.",
+  metadataBase,
+  keywords: [
+    "Wavelength",
+    "party game",
+    "social game",
+    "mind-reading game",
+    "group game",
+    "online party game",
+  ],
+  authors: [
+    {
+      name: "Wavelength",
+      url: "https://wavelength-game.vercel.app",
+    },
+  ],
+  creator: "Wavelength",
+  publisher: "Wavelength",
+  themeColor: "#0a0b0f",
   icons: {
     icon: [{ url: "/logo.svg", type: "image/svg+xml" }],
     apple: [{ url: "/logo.svg" }],
   },
+  manifest: "/site.webmanifest",
   openGraph: {
     title: "Wavelength — Party Game",
     description: "The mind-reading party game. Give clues. Read minds. Get on the same wavelength.",
@@ -29,10 +50,11 @@ export const metadata: Metadata = {
     siteName: "Wavelength",
     images: [
       {
-        url: "/banner.jpg",
+        url: "/banner.svg",
         width: 1200,
         height: 630,
         alt: "Wavelength Party Game Banner",
+        type: "image/svg+xml",
       },
     ],
     locale: "en_US",
@@ -42,7 +64,20 @@ export const metadata: Metadata = {
     card: "summary_large_image",
     title: "Wavelength — Party Game",
     description: "The mind-reading party game. Give clues. Read minds. Get on the same wavelength.",
-    images: ["/banner.jpg"],
+    images: ["/banner.svg"],
+  },
+  robots: {
+    index: true,
+    follow: true,
+    nocache: true,
+    googleBot: {
+      index: true,
+      follow: true,
+      noimageindex: false,
+    },
+  },
+  alternates: {
+    canonical: "/",
   },
 };
 
