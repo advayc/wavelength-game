@@ -22,6 +22,28 @@ export const metadata: Metadata = {
     icon: [{ url: "/logo.svg", type: "image/svg+xml" }],
     apple: [{ url: "/logo.svg" }],
   },
+  openGraph: {
+    title: "Wavelength — Party Game",
+    description: "The mind-reading party game. Give clues. Read minds. Get on the same wavelength.",
+    url: "/",
+    siteName: "Wavelength",
+    images: [
+      {
+        url: "/banner.jpg",
+        width: 1200,
+        height: 630,
+        alt: "Wavelength Party Game Banner",
+      },
+    ],
+    locale: "en_US",
+    type: "website",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Wavelength — Party Game",
+    description: "The mind-reading party game. Give clues. Read minds. Get on the same wavelength.",
+    images: ["/banner.jpg"],
+  },
 };
 
 export const viewport: Viewport = {

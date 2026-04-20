@@ -97,8 +97,8 @@ export default function DialWheel({
 
   const cx = 200;
   const cy = 200;
-  const targetRadius = 170;
-  const dialRadius = 180;
+  const targetRadius = 210;
+  const dialRadius = 225;
 
   // Convert client coordinates to 0-180 angle where 0 is left, 90 is top, 180 is right
   const getAngleFromEvent = useCallback(
@@ -193,14 +193,6 @@ export default function DialWheel({
 
         {/* Clipped background */}
         <g clipPath="url(#screenClip)">
-          {/* Stars */}
-          {[
-            [50, 150], [120, 80], [80, 40], [170, 120], [240, 60],
-            [320, 140], [360, 80], [280, 100], [200, 30], [140, 160],
-            [100, 120], [300, 50], [220, 170], [260, 140],
-          ].map(([x, y], i) => (
-            <circle key={i} cx={x} cy={y} r={i % 2 === 0 ? 1.5 : 1} fill="white" opacity={0.5 + (i % 4) * 0.1} />
-          ))}
 
           {/* Scoring wedges — only render when target is visible */}
           {showWedges && (
