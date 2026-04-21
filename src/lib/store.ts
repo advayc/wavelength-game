@@ -46,10 +46,10 @@ const TEAM_COLORS = [
   "#F72585", // pink
 ];
 
-// 4pt = Bullseye (±6°), 3pt = Inner (±16°), 2pt = Outer (±26°)
+// 5pt = Bullseye (±6°), 3pt = Inner (±16°), 2pt = Outer (±26°)
 function calcScore(targetAngle: number, dialAngle: number): number {
   const diff = Math.abs(targetAngle - dialAngle);
-  if (diff <= 6) return 4;
+  if (diff <= 6) return 5;
   if (diff <= 16) return 3;
   if (diff <= 26) return 2;
   return 0;
