@@ -119,7 +119,7 @@ export default function GameBoardScreen() {
                     +{lastScore}
                   </div>
                   <div className="text-sm opacity-50 uppercase tracking-widest font-mono mt-1">Points</div>
-                  {lastScore === 4 && <div className="text-sm font-bold mt-2">🎯 BULLSEYE!</div>}
+                  {lastScore === 5 && <div className="text-sm font-bold mt-2">🎯 BULLSEYE!</div>}
                   {lastScore === 0 && <div className="text-sm font-bold mt-2 opacity-60">Complete miss...</div>}
                 </div>
                 <button
