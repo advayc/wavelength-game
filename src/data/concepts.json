@@ -355,5 +355,5 @@
   { "left": "Left Brain", "right": "Right Brain" },
   { "left": "Best Temperature", "right": "Worst Temperature" },
   { "left": "Interesting School Class", "right": "Dull School Class" },
-  { "left": "Best Color", "right": "Worst Color" },
+  { "left": "Best Color", "right": "Worst Color" }
 ]
